@@ -60,6 +60,7 @@ class Rule(BaseModel):
     window_seconds: int = Field(gt=0)
     restricted_only: bool = False
     after_hours_only: bool = False
+    custom: bool = False
 
 
 class Incident(BaseModel):

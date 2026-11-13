@@ -8,6 +8,8 @@ A local prototype that ingests simulated access-control, camera, door-controller
 ## Features
 
 - **Live session.** Send individual sensor events from the Simulate tab on any device on the same network, such as a phone. The Overview polls every two seconds and the new events and incidents animate in.
+- **Break a rule.** One button per rule plays its event sequence into the live session one event at a time, a few seconds apart, with a step-by-step progress view that ends when the incident is raised. Ideal for showing what a rule violation looks like as it unfolds.
+- **Custom rules.** Create new correlation rules from the dashboard: title, severity, an ordered event sequence, window, and zone or after-hours constraints. Custom rules persist in `data/custom_rules.json`, apply to the live session immediately, and get their own "Break a rule" button.
 - **Scenario replay.** Twelve reproducible scenarios cover authorized activity, equipment outages, sequence and timing boundaries, zone mismatches, and duplicate messages.
 - **Correlation engine.** Configurable rules match ordered event kinds within a window, restricted to one zone, optionally limited to restricted areas or after-hours periods.
 - **Evidence timelines.** Each incident lists the events that triggered it, with relative offsets and a window-progress bar.
@@ -28,7 +30,8 @@ backend/
     sensors.py       Zone map and raw-signal → event normalization
     correlation.py   Rule loading, de-duplication, sequence correlation
     simulation.py    Fixed scenarios, simulator, and evaluation metrics
-    live.py          In-memory live session fed by the Simulate tab
+    live.py          In-memory live session fed by the Simulate tab, plus rule playback
+    rulebook.py      Built-in rules plus persisted custom rules
     storage.py       SQLite run store
     rules.json       Active correlation rules
   tests/             pytest suite for the API and the correlation engine
@@ -66,6 +69,8 @@ For frontend development keep the backend running and use `npm.cmd --prefix fron
 
 A useful script: in the Server Room, send **Camera offline**, then **Controller unavailable**, then **Forced door opening**. The first two produce no incident on their own. The third completes the sequence and raises a critical incident with all three as evidence.
 
+To demonstrate a rule violation without pressing buttons one at a time, use **Break a rule** on the Simulate or Correlation rules tab. Pick a zone, tap a rule, and its events are sent about 2.5 seconds apart while the progress panel shows each step. The incident appears on the Overview as the last event lands. After-hours rules played during staffed hours are stamped at 22:00 building time so they can match; the progress panel says so.
+
 **Save session as run** stores the live session in Run history. **Clear live session** starts over. **Delete all saved runs** removes every stored run, including the seeded demonstration.
 
 ## Theme
@@ -78,7 +83,9 @@ The dashboard follows the system colour scheme by default. Use the **System / Li
 | --- | --- | --- |
 | GET | `/api/health` | Liveness check |
 | GET | `/api/scenarios` | Fixed scenarios with expected rules |
-| GET | `/api/rules` | Active correlation rules |
+| GET | `/api/rules` | Active correlation rules, built-in and custom |
+| POST | `/api/rules` | Create a custom rule (title, severity, sequence, window_seconds, restricted_only, after_hours_only) |
+| DELETE | `/api/rules/{id}` | Delete a custom rule |
 | GET | `/api/evaluation` | Scenario matrix and metrics |
 | GET | `/api/runs` | Most recent saved runs (`limit` 1–100) |
 | GET | `/api/runs/{id}` | One run with events and incidents |
@@ -87,12 +94,13 @@ The dashboard follows the system colour scheme by default. Use the **System / Li
 | GET | `/api/live` | Live session state and version counter |
 | GET | `/api/live/options` | Zones and sensor events available to the sender |
 | POST | `/api/live/events` | Add one event (`{"location": "server", "system": "camera", "signal": "link_down"}`) |
+| POST | `/api/live/play` | Play a rule's sequence into the live session step by step (`{"rule_id": "camera-door", "location": "server"}`) |
 | POST | `/api/live/save` | Store the live session as a run |
 | DELETE | `/api/live` | Clear the live session |
 
 ## Rules and assumptions
 
-Edit [rules.json](backend/security_console/rules.json) and restart the backend, or set `SECURITY_RULES` to an alternate file. The defaults are prototype settings.
+Built-in rules live in [rules.json](backend/security_console/rules.json); edit it and restart the backend, or set `SECURITY_RULES` to an alternate file. Custom rules created in the dashboard are stored beside the database in `data/custom_rules.json`. The defaults are prototype settings.
 
 | Rule | Ordered evidence | Window | Severity |
 | --- | --- | ---: | --- |

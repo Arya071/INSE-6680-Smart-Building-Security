@@ -3,7 +3,7 @@ import {
   Activity, ArrowRight, BarChart3, Camera, CheckCircle2, ChevronDown, ChevronRight, Clock3,
   DoorOpen, Fingerprint, FlaskConical, History, Info, LayoutDashboard, Layers, MapPin,
   Moon, Play, Radio, Save, ScanLine, Send, Shield, ShieldAlert, ShieldCheck, SlidersHorizontal,
-  Sun, SunMoon, Thermometer, Timer, Trash2, TriangleAlert, WifiOff, XCircle,
+  Plus, Sun, SunMoon, Thermometer, Timer, Trash2, TriangleAlert, WifiOff, X, XCircle,
 } from 'lucide-react'
 
 /* ---------- formatting ---------- */
@@ -48,7 +48,14 @@ const headings = {
 }
 const screen = () => navigation.some(([id]) => location.hash === '#' + id)
   ? location.hash.slice(1) : 'overview'
-const LIVE_POLL_MS = 2000
+const LIVE_POLL_MS = 1500
+const kindOptions = Object.entries(names)
+const severities = ['medium', 'high', 'critical']
+const kindSource = {
+  camera_offline: 'camera', camera_online: 'camera', controller_offline: 'controller',
+  access_granted: 'access', access_denied: 'access', door_open: 'door', forced_door: 'door',
+  unauthorized_open: 'door', motion_detected: 'motion', temperature_warning: 'environment',
+}
 const scenarioName = (scenarios, id) => id === 'live' ? 'Live session'
   : scenarios.find(item => item.id === id)?.name ?? id
 
@@ -333,6 +340,132 @@ function DataReset({ runs, busy, onReset }) {
   </section>
 }
 
+/* ---------- rule playback ---------- */
+function PlaybackProgress({ playback, rules }) {
+  const rule = rules.find(item => item.id === playback.rule_id)
+  const sequence = rule?.sequence ?? []
+  return <div className={'playback ' + (playback.done ? (playback.incident_id ? 'sev-' + (rule?.severity ?? 'high') + ' raised' : 'quiet') : 'running')} role="status" aria-live="polite">
+    <div className="playback-head">
+      <strong>{playback.done
+        ? (playback.incident_id ? `${playback.incident_id} raised · ${playback.title}` : `${playback.title} · no incident`)
+        : `Breaking “${playback.title}” · step ${playback.step} of ${playback.total}`}</strong>
+      <span className="tag"><MapPin size={12} aria-hidden="true" />{playback.zone}</span>
+      {playback.after_hours_shift && <span className="tag"><Clock3 size={12} aria-hidden="true" />Stamped 22:00 (after hours)</span>}
+    </div>
+    <ol className="stepper">
+      {sequence.map((kind, index) => {
+        const state = index < playback.step ? 'done' : index === playback.step && !playback.done ? 'current' : 'pending'
+        const Icon = sources[kindSource[kind]] ?? Activity
+        return <li key={index} className={state}>
+          <span className="step-dot">{state === 'done' ? <CheckCircle2 size={14} aria-hidden="true" /> : <i>{index + 1}</i>}</span>
+          <Icon size={14} aria-hidden="true" /><span>{names[kind] ?? kind}</span>
+        </li>
+      })}
+      <li className={playback.done ? (playback.incident_id ? 'done alarm' : 'done') : 'pending alarm'}>
+        <span className="step-dot"><ShieldAlert size={14} aria-hidden="true" /></span>
+        <span>{playback.done ? (playback.incident_id ? 'Incident raised on the Overview' : 'Sequence complete, rule did not fire') : 'Incident'}</span>
+      </li>
+    </ol>
+  </div>
+}
+
+function RulePlayer({ rules, choices, live, busy, onPlay, compact }) {
+  const [zone, setZone] = useState('server')
+  const playback = live?.playback
+  const running = playback && !playback.done
+  const zoneInfo = choices.zones.find(item => item.id === zone)
+  return <section className="panel" aria-labelledby="break-heading">
+    <div className="panel-heading">
+      <div><h3 id="break-heading">Break a rule</h3><p>Plays the rule’s event sequence into the live session one event at a time, a few seconds apart</p></div>
+      <div className="field compact">
+        <label htmlFor="play-zone">Zone</label>
+        <div className="select-wrap">
+          <select id="play-zone" value={zone} onChange={event => setZone(event.target.value)} disabled={running}>
+            {choices.zones.map(item => <option key={item.id} value={item.id}>{item.name}{item.restricted ? ' (restricted)' : ''}</option>)}
+          </select><ChevronDown size={15} aria-hidden="true" />
+        </div>
+      </div>
+    </div>
+    <div className={'rule-buttons' + (compact ? ' compact' : '')}>
+      {rules.map(rule => {
+        const blocked = rule.restricted_only && zoneInfo && !zoneInfo.restricted
+        return <button key={rule.id} type="button" className={'rule-button sev-' + rule.severity} disabled={busy || running || blocked}
+          title={blocked ? 'This rule only applies to restricted zones' : undefined}
+          onClick={() => onPlay(rule.id, zone)}>
+          <span className="rule-button-head"><Severity value={rule.severity} />{rule.custom && <span className="tag">Custom</span>}</span>
+          <strong>{rule.title}</strong>
+          <span className="rule-button-seq">{rule.sequence.map(kind => names[kind] ?? kind).join(' → ')}</span>
+          <span className="rule-button-cta"><Play size={13} aria-hidden="true" />{blocked ? 'Needs a restricted zone' : `Play ${rule.sequence.length} events`}</span>
+        </button>
+      })}
+    </div>
+    {playback && <PlaybackProgress playback={playback} rules={rules} />}
+  </section>
+}
+
+function RuleBuilder({ busy, onCreate }) {
+  const blank = { title: '', description: '', severity: 'high', sequence: ['camera_offline', 'forced_door'], window_seconds: 120, restricted_only: true, after_hours_only: false }
+  const [draft, setDraft] = useState(blank)
+  const [open, setOpen] = useState(false)
+  const set = (key, value) => setDraft(previous => ({ ...previous, [key]: value }))
+  const setStep = (index, value) => set('sequence', draft.sequence.map((kind, at) => at === index ? value : kind))
+  async function submit(event) {
+    event.preventDefault()
+    if (await onCreate({ ...draft, window_seconds: Number(draft.window_seconds) })) { setDraft(blank); setOpen(false) }
+  }
+  if (!open) return <button type="button" className="btn btn-primary" onClick={() => setOpen(true)}><Plus size={15} aria-hidden="true" />Create a rule</button>
+  return <section className="panel" aria-labelledby="builder-heading">
+    <div className="panel-heading">
+      <div><h3 id="builder-heading">New correlation rule</h3><p>Ordered events that must all occur in one zone within the window. Saved rules apply to the live session immediately.</p></div>
+      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(false)} aria-label="Close rule builder"><X size={16} aria-hidden="true" /></button>
+    </div>
+    <form className="rule-form" onSubmit={submit}>
+      <div className="field span-2">
+        <label htmlFor="rule-title">Title</label>
+        <input id="rule-title" className="input" required maxLength={80} value={draft.title} onChange={event => set('title', event.target.value)} placeholder="e.g. Tailgating after a denied badge" />
+      </div>
+      <div className="field">
+        <label htmlFor="rule-severity">Severity</label>
+        <div className="select-wrap"><select id="rule-severity" value={draft.severity} onChange={event => set('severity', event.target.value)}>
+          {severities.map(level => <option key={level} value={level}>{level[0].toUpperCase() + level.slice(1)}</option>)}
+        </select><ChevronDown size={15} aria-hidden="true" /></div>
+      </div>
+      <div className="field">
+        <label htmlFor="rule-window">Window (seconds)</label>
+        <input id="rule-window" className="input" type="number" min={1} max={3600} required value={draft.window_seconds} onChange={event => set('window_seconds', event.target.value)} />
+      </div>
+      <fieldset className="field span-2">
+        <legend className="section-label">Event sequence, in order</legend>
+        <ol className="rule-chain">
+          {draft.sequence.map((kind, index) => <li key={index} className="contents">
+            {index > 0 && <ChevronRight size={14} aria-hidden="true" />}
+            <span className="rule-step editable"><i>{index + 1}</i>
+              <label className="sr-only" htmlFor={'step-' + index}>Step {index + 1}</label>
+              <select id={'step-' + index} value={kind} onChange={event => setStep(index, event.target.value)}>
+                {kindOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+              {draft.sequence.length > 2 && <button type="button" className="step-remove" aria-label={'Remove step ' + (index + 1)} onClick={() => set('sequence', draft.sequence.filter((_, at) => at !== index))}><X size={12} aria-hidden="true" /></button>}
+            </span>
+          </li>)}
+          {draft.sequence.length < 8 && <li className="contents"><button type="button" className="btn btn-secondary btn-sm" onClick={() => set('sequence', [...draft.sequence, 'motion_detected'])}><Plus size={13} aria-hidden="true" />Add step</button></li>}
+        </ol>
+      </fieldset>
+      <div className="field span-2 checks">
+        <label><input type="checkbox" checked={draft.restricted_only} onChange={event => set('restricted_only', event.target.checked)} /> Restricted areas only</label>
+        <label><input type="checkbox" checked={draft.after_hours_only} onChange={event => set('after_hours_only', event.target.checked)} /> After staffed hours only</label>
+      </div>
+      <div className="field span-2">
+        <label htmlFor="rule-description">Description <span className="text-ink-3">(optional, generated if empty)</span></label>
+        <input id="rule-description" className="input" maxLength={300} value={draft.description} onChange={event => set('description', event.target.value)} />
+      </div>
+      <div className="span-2 flex flex-wrap justify-end gap-2">
+        <button type="button" className="btn btn-secondary" onClick={() => setOpen(false)}>Cancel</button>
+        <button type="submit" className="btn btn-primary" disabled={busy}><Save size={15} aria-hidden="true" />Save rule</button>
+      </div>
+    </form>
+  </section>
+}
+
 /* ---------- history ---------- */
 function RunHistory({ runs, scenarios, onOpen, busy, currentId }) {
   return <section className="panel" aria-labelledby="history-heading">
@@ -357,10 +490,14 @@ function RunHistory({ runs, scenarios, onOpen, busy, currentId }) {
 }
 
 /* ---------- rules ---------- */
-function Rules({ rules }) {
-  return <div className="rules-grid">
+function Rules({ rules, choices, live, busy, onPlay, onCreate, onDelete }) {
+  return <>
+    <RuleBuilder busy={busy} onCreate={onCreate} />
+    <RulePlayer rules={rules} choices={choices} live={live} busy={busy} onPlay={onPlay} compact />
+    <div className="rules-grid">
     {rules.map(rule => <article className="panel rule-card" key={rule.id}>
-      <div className="flex flex-wrap items-start justify-between gap-2"><h3>{rule.title}</h3><Severity value={rule.severity} /></div>
+      <div className="flex flex-wrap items-start justify-between gap-2"><h3>{rule.title}</h3>
+        <span className="flex items-center gap-1.5"><Severity value={rule.severity} />{rule.custom && <span className="tag">Custom</span>}</span></div>
       <p>{rule.description}</p>
       <ol className="rule-chain" aria-label="Required event sequence">
         {rule.sequence.map((kind, index) => <li key={index} className="contents">
@@ -373,9 +510,11 @@ function Rules({ rules }) {
         <Tag icon={MapPin}>Same zone</Tag>
         {rule.restricted_only && <Tag icon={Shield}>Restricted area</Tag>}
         {rule.after_hours_only && <Tag icon={Clock3}>After staffed hours</Tag>}
+        {rule.custom && <button type="button" className="btn btn-ghost btn-sm ml-auto" disabled={busy} onClick={() => onDelete(rule.id)}><Trash2 size={13} aria-hidden="true" />Delete</button>}
       </div>
     </article>)}
-  </div>
+    </div>
+  </>
 }
 
 /* ---------- evaluation ---------- */
@@ -486,7 +625,7 @@ export default function App() {
   }, [attempt])
 
   useEffect(() => {
-    if (!ready || (page !== 'overview' && page !== 'simulate')) return
+    if (!ready || !['overview', 'simulate', 'rules'].includes(page)) return
     let active = true
     const tick = async () => {
       try {
@@ -539,6 +678,36 @@ export default function App() {
       setRuns([])
       setRun(null)
       setStatus(result.deleted + ' saved runs deleted.')
+    } catch (failure) { setError(failure.message) } finally { setBusy(false) }
+  }
+
+  async function playRule(ruleId, location) {
+    setError('')
+    try {
+      await api('live/play', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rule_id: ruleId, location }) })
+      setLive(await api('live'))
+      setSource('live')
+    } catch (failure) { setError(failure.message) }
+  }
+
+  async function createRule(draft) {
+    setBusy(true)
+    setError('')
+    try {
+      const rule = await api('rules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) })
+      setRules(previous => [...previous, rule])
+      setStatus('Rule “' + rule.title + '” saved. It is live now and appears under Break a rule.')
+      return true
+    } catch (failure) { setError(failure.message); return false } finally { setBusy(false) }
+  }
+
+  async function deleteRule(id) {
+    setBusy(true)
+    setError('')
+    try {
+      await api('rules/' + id, { method: 'DELETE' })
+      setRules(previous => previous.filter(rule => rule.id !== id))
+      setStatus('Rule deleted.')
     } catch (failure) { setError(failure.message) } finally { setBusy(false) }
   }
 
@@ -637,14 +806,17 @@ export default function App() {
         {!ready && !error && <Skeleton />}
         {ready && page === 'overview' && <Overview key={activeSource === 'live' ? 'live' : run?.id} run={shown} rules={rules} live={activeSource === 'live'} />}
         {ready && page === 'simulate' && <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-          <LiveSender choices={choices} live={liveRun} busy={busy} onSend={sendLiveEvent} onClear={clearLive} onSave={saveLive} />
+          <div className="space-y-4">
+            <LiveSender choices={choices} live={liveRun} busy={busy} onSend={sendLiveEvent} onClear={clearLive} onSave={saveLive} />
+            <RulePlayer rules={rules} choices={choices} live={live} busy={busy} onPlay={playRule} />
+          </div>
           <div className="space-y-4">
             <ScenarioReplay scenarios={scenarios} selected={selected} setSelected={setSelected} busy={busy} onRun={runSimulation} />
             <DataReset runs={runs} busy={busy} onReset={resetRuns} />
           </div>
         </div>}
         {ready && page === 'history' && <RunHistory runs={runs} scenarios={scenarios} onOpen={openRun} busy={busy} currentId={run?.id} />}
-        {ready && page === 'rules' && <Rules rules={rules} />}
+        {ready && page === 'rules' && <Rules rules={rules} choices={choices} live={live} busy={busy} onPlay={playRule} onCreate={createRule} onDelete={deleteRule} />}
         {ready && page === 'evaluation' && <Evaluation report={report} rules={rules} />}
       </div>
     </main>

@@ -1,3 +1,5 @@
+import time
+
 from fastapi.testclient import TestClient
 
 from security_console.main import create_app
@@ -75,3 +77,52 @@ def test_live_session_correlates_custom_events_and_can_be_reset(tmp_path):
 
         assert client.delete("/api/runs").json()["deleted"] == 2
         assert client.get("/api/runs").json() == []
+
+
+def wait_for_playback(client, seconds=5):
+    deadline = time.time() + seconds
+    while time.time() < deadline:
+        state = client.get("/api/live").json()
+        if state["playback"] and state["playback"]["done"]:
+            return state
+        time.sleep(0.05)
+    raise AssertionError("playback did not finish")
+
+
+def test_custom_rules_persist_and_rule_playback_raises_an_incident(tmp_path):
+    path = tmp_path / "test.sqlite3"
+    app = create_app(path, serve_frontend=False, seed_demo=False)
+    draft = {
+        "title": "Tailgating after denial", "severity": "medium",
+        "sequence": ["access_denied", "door_open"], "window_seconds": 45,
+    }
+    with TestClient(app) as client:
+        created = client.post("/api/rules", json=draft).json()
+        assert created["custom"] and created["id"].startswith("tailgating-after-denial-")
+        assert "within 45 seconds" in created["description"]
+        assert len(client.get("/api/rules").json()) == 5
+        assert client.post("/api/rules", json={**draft, "sequence": ["door_open"]}).status_code == 422
+        assert client.delete("/api/rules/camera-door").status_code == 409
+
+        started = client.post("/api/live/play", json={"rule_id": created["id"], "location": "lobby", "interval_seconds": 0})
+        assert started.status_code == 202 and started.json()["total"] == 2
+        state = wait_for_playback(client)
+        assert state["playback"]["incident_id"] == "INC-001"
+        assert state["run"]["incidents"][0]["rule_ids"] == [created["id"]]
+        assert [event["kind"] for event in state["run"]["events"]] == ["access_denied", "door_open"]
+
+        assert client.post("/api/live/play", json={"rule_id": "camera-door", "location": "lobby"}).status_code == 422
+        assert client.post("/api/live/play", json={"rule_id": "missing"}).status_code == 404
+
+        after_hours = client.post("/api/live/play", json={"rule_id": "after-hours-motion", "interval_seconds": 0}).json()
+        assert after_hours["location"] == "server"
+        assert wait_for_playback(client)["playback"]["incident_id"] == "INC-002"
+
+        assert client.delete(f"/api/rules/{created['id']}").json() == {"deleted": created["id"]}
+        assert client.delete("/api/rules/missing").status_code == 404
+
+    with TestClient(app) as client:
+        assert len(client.get("/api/rules").json()) == 4
+        client.post("/api/rules", json=draft)
+    with TestClient(create_app(path, serve_frontend=False, seed_demo=False)) as client:
+        assert [rule["custom"] for rule in client.get("/api/rules").json()] == [False] * 4 + [True]
