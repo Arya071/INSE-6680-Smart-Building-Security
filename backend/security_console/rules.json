@@ -1,0 +1,39 @@
+[
+  {
+    "id": "camera-door",
+    "title": "Suspected intrusion",
+    "description": "A camera goes offline before a restricted-area door is forced open in the same zone.",
+    "severity": "high",
+    "sequence": ["camera_offline", "forced_door"],
+    "window_seconds": 120,
+    "restricted_only": true
+  },
+  {
+    "id": "camera-controller-door",
+    "title": "Suspected tampering and intrusion",
+    "description": "Camera loss and controller loss precede a forced door opening in the same restricted zone.",
+    "severity": "critical",
+    "sequence": ["camera_offline", "controller_offline", "forced_door"],
+    "window_seconds": 120,
+    "restricted_only": true
+  },
+  {
+    "id": "denials-door",
+    "title": "Escalated access attempt",
+    "description": "Three denied access attempts precede a forced opening in the same restricted zone.",
+    "severity": "high",
+    "sequence": ["access_denied", "access_denied", "access_denied", "forced_door"],
+    "window_seconds": 90,
+    "restricted_only": true
+  },
+  {
+    "id": "after-hours-motion",
+    "title": "After-hours unauthorized entry",
+    "description": "Motion follows an unverified door opening in the same restricted zone outside staffed hours.",
+    "severity": "medium",
+    "sequence": ["unauthorized_open", "motion_detected"],
+    "window_seconds": 60,
+    "restricted_only": true,
+    "after_hours_only": true
+  }
+]

@@ -1,0 +1,300 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   Design tokens
+   Semantic roles only. Components never reference raw hex values.
+   Light is the default; [data-theme="dark"] swaps the palette.
+   ------------------------------------------------------------------ */
+:root {
+  --canvas: #f3f5f8;
+  --surface: #ffffff;
+  --sunken: #eceff3;
+  --raised: #f7f9fb;
+  --line: #dfe4ea;
+  --line-strong: #c5cdd7;
+  --ink: #111827;
+  --ink-2: #4b5563;
+  --ink-3: #6b7280;
+  --accent: #2456d4;
+  --accent-strong: #1b45b3;
+  --accent-ink: #ffffff;
+  --accent-soft: #e6ecfb;
+  --focus: #2456d4;
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.06), 0 1px 3px rgb(16 24 40 / 0.08);
+
+  --sev-critical: #b91c1c; --sev-critical-bg: #fde8e8; --sev-critical-line: #f3b8b8;
+  --sev-high: #c2410c;     --sev-high-bg: #ffe9d6;     --sev-high-line: #f7c2a0;
+  --sev-medium: #a16207;   --sev-medium-bg: #fdf1c7;   --sev-medium-line: #efd58a;
+  --ok: #15803d;           --ok-bg: #dcf5e4;           --ok-line: #a8dfbb;
+  --info: #1d4ed8;         --info-bg: #e0e9ff;         --info-line: #b9caf7;
+}
+
+[data-theme="dark"] {
+  --canvas: #0a0e14;
+  --surface: #111722;
+  --sunken: #0d121b;
+  --raised: #182030;
+  --line: #222c3b;
+  --line-strong: #344053;
+  --ink: #e9edf3;
+  --ink-2: #a7b1c0;
+  --ink-3: #7f8a9b;
+  --accent: #7ea2ff;
+  --accent-strong: #a3bcff;
+  --accent-ink: #0a0e14;
+  --accent-soft: rgb(126 162 255 / 0.14);
+  --focus: #9fb9ff;
+  --shadow: 0 1px 0 rgb(255 255 255 / 0.03) inset;
+
+  --sev-critical: #ff8f8f; --sev-critical-bg: rgb(239 68 68 / 0.16);  --sev-critical-line: rgb(239 68 68 / 0.4);
+  --sev-high: #ffb272;     --sev-high-bg: rgb(249 115 22 / 0.16);     --sev-high-line: rgb(249 115 22 / 0.4);
+  --sev-medium: #f6d05a;   --sev-medium-bg: rgb(245 158 11 / 0.16);   --sev-medium-line: rgb(245 158 11 / 0.4);
+  --ok: #6fe3a0;           --ok-bg: rgb(34 197 94 / 0.16);            --ok-line: rgb(34 197 94 / 0.4);
+  --info: #8fb4ff;         --info-bg: rgb(59 130 246 / 0.16);         --info-line: rgb(59 130 246 / 0.4);
+}
+
+@theme inline {
+  --font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok: var(--ok);
+  --color-info: var(--info);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+/* ------------------------------------------------------------------ */
+@layer base {
+  html { color-scheme: light; scroll-behavior: smooth; }
+  html[data-theme="dark"] { color-scheme: dark; }
+  body { @apply m-0 bg-canvas font-sans text-[15px] text-ink antialiased; }
+  button, select, summary { @apply cursor-pointer; }
+  button:disabled, select:disabled { @apply cursor-not-allowed opacity-50; }
+  button, select, summary, a { @apply transition-[color,background-color,border-color,box-shadow] duration-150; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-sm); }
+  h1, h2, h3, h4, strong { @apply font-semibold; }
+  code, .mono { @apply font-mono text-[0.92em]; }
+}
+
+/* ------------------------------------------------------------------ */
+@layer components {
+  /* Shell ---------------------------------------------------------- */
+  .app-shell { @apply min-h-screen lg:grid lg:grid-cols-[248px_minmax(0,1fr)]; }
+  .skip-link { @apply sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-accent focus:px-4 focus:py-2 focus:text-accent-ink; }
+
+  .sidebar { @apply flex flex-col gap-4 border-b border-line bg-surface px-4 py-3 lg:sticky lg:top-0 lg:h-screen lg:gap-8 lg:border-r lg:border-b-0 lg:py-5; }
+  .brand { @apply flex min-h-11 items-center gap-3 rounded-md px-2 text-[15px] leading-tight font-semibold; }
+  .brand small { @apply mt-0.5 block text-[11px] font-medium tracking-[0.08em] text-ink-3 uppercase; }
+  .brand-mark { @apply grid size-9 shrink-0 place-items-center rounded-lg bg-accent text-accent-ink; }
+
+  .nav-group { @apply flex flex-col gap-1; }
+  .nav-label { @apply hidden px-3 pb-1 text-[11px] font-medium tracking-[0.08em] text-ink-3 uppercase lg:block; }
+  .sidebar nav { @apply grid grid-cols-2 gap-1 sm:grid-cols-4 lg:grid-cols-1; }
+  .sidebar nav a { @apply relative flex min-h-11 items-center gap-2.5 rounded-md px-3 text-[13.5px] font-medium text-ink-2 hover:bg-sunken hover:text-ink; }
+  .sidebar nav a svg { @apply shrink-0 text-ink-3; }
+  .sidebar nav a[aria-current="page"] { @apply bg-accent-soft text-accent; }
+  .sidebar nav a[aria-current="page"] svg { @apply text-accent; }
+  .sidebar nav a[aria-current="page"]::before { @apply absolute top-2.5 bottom-2.5 left-0 hidden w-0.5 rounded-full bg-accent content-[''] lg:block; }
+  .sidebar-footer { @apply mt-auto hidden flex-col gap-3 border-t border-line pt-4 lg:flex; }
+  .env-chip { @apply inline-flex items-center gap-2 px-2 text-xs text-ink-3; }
+
+  .segmented { @apply inline-grid auto-cols-fr grid-flow-col rounded-md border border-line bg-sunken p-0.5; }
+  .segmented button { @apply inline-flex min-h-9 items-center justify-center gap-1.5 rounded-[5px] px-2.5 text-xs font-medium text-ink-2 hover:text-ink; }
+  .segmented button svg { @apply shrink-0; }
+  .segmented button[aria-pressed="true"] { @apply bg-surface text-ink shadow-[var(--shadow)]; }
+
+  .topbar { @apply sticky top-0 z-10 flex min-h-14 flex-wrap items-center justify-between gap-3 border-b border-line bg-canvas/90 px-4 backdrop-blur sm:px-7 lg:px-9; }
+  .topbar h1 { @apply text-[15px] font-semibold tracking-tight; }
+  .topbar-tools { @apply flex items-center gap-2; }
+  .status-pill { @apply inline-flex min-h-8 items-center gap-2 rounded-full border px-3 text-xs font-medium; }
+  .status-pill { @apply border-line bg-surface text-ink-2; }
+  .status-pill.live { @apply border-(--ok-line) bg-(--ok-bg) text-(--ok); }
+  .status-pill .pulse { @apply relative size-1.5 rounded-full bg-current; }
+  .status-pill .pulse::after { @apply absolute inset-[-3px] animate-ping rounded-full bg-current opacity-40 content-['']; }
+
+  .workspace { @apply mx-auto max-w-[1480px] space-y-5 px-4 py-6 sm:px-7 lg:px-9; }
+  .page-heading { @apply flex flex-wrap items-end justify-between gap-3; }
+  .page-heading h2 { @apply text-[1.65rem] leading-tight tracking-[-0.03em] sm:text-[1.9rem]; }
+  .page-heading p { @apply mt-1.5 max-w-2xl text-sm leading-relaxed text-ink-2; }
+
+  /* Surfaces -------------------------------------------------------- */
+  .panel { @apply min-w-0 rounded-(--radius-lg) border border-line bg-surface shadow-[var(--shadow)]; }
+  .panel-heading { @apply flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3.5 sm:px-5; }
+  .panel-heading h3, .rule-card h3 { @apply text-[15px] leading-snug tracking-tight; }
+  .panel-heading p, .empty p, .data-row p { @apply mt-0.5 text-[13px] leading-relaxed text-ink-2; }
+  .empty { @apply px-4 py-8 text-center text-sm text-ink-2 sm:px-5; }
+  .empty strong { @apply block text-ink; }
+  .empty svg { @apply mx-auto mb-2 text-ink-3; }
+
+  /* Controls -------------------------------------------------------- */
+  .select-wrap { @apply relative flex min-w-0 max-w-full items-center; }
+  .select-wrap > svg { @apply pointer-events-none absolute right-3 text-ink-3; }
+  .select-wrap select { @apply min-h-11 w-full appearance-none rounded-md border border-line bg-surface py-2 pr-9 pl-3 text-[13.5px] text-ink hover:border-line-strong; }
+  .btn { @apply inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-md px-4 text-[13.5px] font-semibold; }
+  .btn-primary { @apply bg-accent text-accent-ink hover:bg-accent-strong; }
+  .btn-secondary { @apply border border-line bg-surface text-ink hover:border-line-strong hover:bg-sunken; }
+  .btn-ghost { @apply min-h-9 px-2.5 text-ink-2 hover:bg-sunken hover:text-ink; }
+  .btn-sm { @apply min-h-9 px-3 text-[13px]; }
+
+  .btn-danger { @apply bg-(--sev-critical) text-white hover:opacity-90; }
+  .scenario-desc { @apply flex min-w-0 items-start gap-2.5 text-[13px] leading-relaxed text-ink-2; }
+  .scenario-desc svg { @apply mt-0.5 shrink-0 text-ink-3; }
+
+  /* Simulate page ---------------------------------------------------- */
+  .sender { @apply grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end sm:p-5; }
+  .field { @apply flex min-w-0 flex-col gap-1.5; }
+  .field label { @apply text-xs font-medium text-ink-2; }
+  .section-label { @apply block text-[11px] font-medium tracking-[0.08em] text-ink-3 uppercase; }
+  .quick-send { @apply border-t border-line px-4 py-4 sm:px-5; }
+  .quick-grid { @apply mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-3; }
+  .quick { @apply flex min-h-12 items-center gap-2.5 rounded-md border border-line bg-raised px-3 text-left text-[13px] font-medium text-ink hover:border-line-strong hover:bg-sunken active:bg-accent-soft; }
+  .send-log { @apply border-t border-line; }
+  .send-log li { @apply flex min-h-11 flex-wrap items-center gap-x-3 gap-y-1 border-b border-line px-4 py-2 text-[13px] last:border-b-0 sm:px-5; }
+  .send-log li > span:nth-child(2) { @apply min-w-0 flex-1 text-ink-2; }
+  .send-log li strong { @apply text-ink; }
+  .send-log li { animation: row-in 300ms ease-out; }
+
+  /* Notices --------------------------------------------------------- */
+  .notice { @apply flex flex-wrap items-center justify-between gap-3 rounded-(--radius-md) border px-4 py-3 text-sm; }
+  .notice-error { @apply border-(--sev-critical-line) bg-(--sev-critical-bg) text-(--sev-critical); }
+  .notice-ok { @apply border-(--ok-line) bg-(--ok-bg) text-(--ok); }
+  .notice > span { @apply inline-flex items-center gap-2; }
+
+  /* Severity / tags ------------------------------------------------- */
+  .sev-critical { --sev: var(--sev-critical); --sev-bg: var(--sev-critical-bg); --sev-line: var(--sev-critical-line); }
+  .sev-high { --sev: var(--sev-high); --sev-bg: var(--sev-high-bg); --sev-line: var(--sev-high-line); }
+  .sev-medium { --sev: var(--sev-medium); --sev-bg: var(--sev-medium-bg); --sev-line: var(--sev-medium-line); }
+  .severity { @apply inline-flex items-center gap-1.5 rounded-full border border-(--sev-line) bg-(--sev-bg) px-2 py-0.5 text-[11px] font-semibold tracking-wide text-(--sev) uppercase; }
+  .severity .dot { @apply size-1.5 rounded-full bg-current; }
+  .tag { @apply inline-flex items-center gap-1 rounded-md border border-line bg-sunken px-1.5 py-0.5 text-[11.5px] font-medium text-ink-2; }
+  .tag svg { @apply text-ink-3; }
+  .result { @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold; }
+  .result.passed { @apply border-(--ok-line) bg-(--ok-bg) text-(--ok); }
+  .result.failed { @apply border-(--sev-critical-line) bg-(--sev-critical-bg) text-(--sev-critical); }
+
+  /* KPI tiles ------------------------------------------------------- */
+  .stats { @apply grid grid-cols-2 gap-3 xl:grid-cols-4; }
+  .stat { @apply flex min-h-28 flex-col justify-between p-4; }
+  .stat-label { @apply flex items-start justify-between gap-2 text-[13px] font-medium text-ink-2; }
+  .stat strong { @apply mt-2 text-[1.9rem] leading-none tracking-[-0.03em] tabular-nums; }
+  .stat small { @apply mt-1.5 text-xs leading-relaxed text-ink-3; }
+  .icon-tile { @apply grid size-8 shrink-0 place-items-center rounded-md bg-accent-soft text-accent; }
+  .icon-tile.neutral { @apply bg-sunken text-ink-2; }
+  .icon-tile.ok { @apply bg-(--ok-bg) text-(--ok); }
+  .icon-tile.warn { @apply bg-(--sev-high-bg) text-(--sev-high); }
+  .icon-tile.critical { @apply bg-(--sev-critical-bg) text-(--sev-critical); }
+
+  /* Correlation funnel ---------------------------------------------- */
+  .funnel { @apply grid gap-px overflow-hidden rounded-(--radius-lg) border border-line bg-line shadow-[var(--shadow)] sm:grid-cols-3; }
+  .funnel > div { @apply relative flex flex-col gap-1 bg-surface p-4 sm:p-5; }
+  .funnel .label { @apply text-[12px] font-medium tracking-wide text-ink-3 uppercase; }
+  .funnel .value { @apply text-[2rem] leading-none font-semibold tracking-[-0.03em] tabular-nums; }
+  .funnel .hint { @apply text-xs text-ink-2; }
+  .funnel .step-arrow { @apply absolute top-1/2 -right-3 z-[1] hidden size-6 -translate-y-1/2 place-items-center rounded-full border border-line bg-surface text-ink-3 sm:grid; }
+  .funnel .reduction { @apply bg-accent-soft; }
+  .funnel .reduction .value { @apply text-accent; }
+
+  .overview-grid { @apply grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]; }
+
+  /* Event feed ------------------------------------------------------ */
+  .feed-columns, .event-row { @apply grid grid-cols-[76px_minmax(0,1fr)] items-center gap-x-3 px-4 sm:grid-cols-[88px_minmax(0,1.5fr)_minmax(0,1fr)_84px] sm:px-5; }
+  .feed-columns { @apply hidden border-b border-line bg-sunken/70 py-2 text-[11px] font-medium tracking-[0.06em] text-ink-3 uppercase sm:grid; }
+  .event-list { @apply max-h-[720px] overflow-y-auto; }
+  .event-row { @apply relative min-h-14 border-b border-line py-2.5 last:border-b-0; animation: row-in 350ms ease-out; }
+  .event-row.is-evidence::before { @apply absolute top-0 bottom-0 left-0 w-0.5 bg-accent content-['']; }
+  .event-row.is-focus { @apply bg-accent-soft; }
+  .event-time { @apply font-mono text-xs text-ink-2 tabular-nums; }
+  .event-identity { @apply flex min-w-0 items-center gap-2.5; }
+  .event-identity strong { @apply block text-[13.5px] leading-snug; }
+  .event-identity small { @apply mt-0.5 block font-mono text-[11px] break-all text-ink-3; }
+  .event-zone { @apply col-start-2 row-start-2 text-xs text-ink-2 sm:col-start-auto sm:row-start-auto; }
+  .event-flag { @apply col-span-2 row-start-3 mt-1 justify-self-start text-[11px] font-semibold text-accent sm:col-span-1 sm:row-start-auto sm:mt-0 sm:justify-self-end; }
+  .feed-footer { @apply flex flex-wrap justify-between gap-2 border-t border-line px-4 py-3 text-xs text-ink-3 sm:px-5; }
+  .count { @apply grid min-w-7 place-items-center rounded-full bg-sunken px-2 py-1 text-xs font-semibold text-ink-2 tabular-nums; }
+
+  /* Incidents ------------------------------------------------------- */
+  .incident-list { @apply space-y-3 p-4 sm:p-5; }
+  .incident { @apply relative overflow-hidden rounded-(--radius-md) border border-line bg-raised p-4 pl-5 transition-colors; animation: row-in 400ms ease-out; }
+  .incident::before { @apply absolute top-0 bottom-0 left-0 w-1 bg-(--sev) content-['']; }
+  .incident:hover, .incident:focus-within { @apply border-line-strong; }
+  .incident-id { @apply block max-w-full truncate font-mono text-[11px] text-ink-3; }
+  .incident h4 { @apply mt-2.5 text-[17px] leading-tight tracking-tight; }
+  .incident-meta { @apply mt-2.5 flex flex-wrap gap-1.5; }
+  .incident h5 { @apply mt-4 flex items-center justify-between text-[11px] font-medium tracking-[0.06em] text-ink-3 uppercase; }
+  .incident h5 span { @apply font-mono normal-case; }
+  .window-bar { @apply mt-2 h-1.5 overflow-hidden rounded-full bg-sunken; }
+  .window-bar div { @apply h-full rounded-full bg-(--sev); }
+  .timeline { @apply mt-3; }
+  .timeline li { @apply relative grid grid-cols-[1fr_auto] items-baseline gap-x-3 py-1.5 pl-5 text-[13px]; }
+  .timeline li::before { @apply absolute top-[11px] left-0 size-2 rounded-full border-2 border-(--sev) bg-raised content-['']; }
+  .timeline li:not(:last-child)::after { @apply absolute top-[19px] bottom-[-8px] left-[3px] w-px bg-line-strong content-['']; }
+  .timeline li:last-child::before { @apply bg-(--sev); }
+  .timeline small { @apply block font-mono text-[11px] text-ink-3; }
+  .timeline time { @apply font-mono text-xs text-ink-2 tabular-nums; }
+  .timeline time b { @apply ml-1.5 font-medium text-(--sev); }
+  .rule-matches { @apply mt-3 border-t border-line pt-1 text-xs text-ink-2; }
+  .rule-matches summary { @apply flex min-h-10 list-none items-center justify-between gap-2 font-medium text-accent hover:text-accent-strong; }
+  .rule-matches summary::-webkit-details-marker { display: none; }
+  .rule-matches[open] summary svg { @apply rotate-180; }
+  .rule-matches ul { @apply flex flex-wrap gap-1.5 pb-1; }
+
+  /* Tables (history, evaluation) ----------------------------------- */
+  .data-head { @apply hidden border-b border-line bg-sunken/70 px-4 py-2 text-[11px] font-medium tracking-[0.06em] text-ink-3 uppercase sm:grid sm:px-5; }
+  .data-row { @apply grid items-center gap-x-4 gap-y-2 border-b border-line px-4 py-3.5 last:border-b-0 sm:px-5; }
+  .data-row strong { @apply block text-[13.5px] leading-snug; }
+  .history-cols { @apply sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1.1fr)_80px_90px_100px_auto]; }
+  .eval-cols { @apply sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1.3fr)_minmax(0,1.3fr)_90px]; }
+  .cell-label { @apply mr-1.5 text-[11px] font-medium tracking-wide text-ink-3 uppercase sm:hidden; }
+  .num { @apply font-mono text-[13px] tabular-nums; }
+  .outcome-text { @apply text-[13px] text-ink-2; }
+
+  /* Rules ----------------------------------------------------------- */
+  .rules-grid { @apply grid gap-4 lg:grid-cols-2; }
+  .rule-card { @apply flex flex-col gap-4 p-4 sm:p-5; }
+  .rule-card > p { @apply text-sm leading-relaxed text-ink-2; }
+  .rule-chain { @apply flex flex-wrap items-center gap-2; }
+  .rule-step { @apply inline-flex min-h-9 items-center gap-2 rounded-md border border-line bg-raised px-2.5 text-[13px]; }
+  .rule-step i { @apply grid size-5 place-items-center rounded-full bg-accent-soft font-mono text-[10.5px] font-semibold text-accent not-italic; }
+  .rule-chain svg { @apply text-ink-3; }
+  .rule-constraints { @apply mt-auto flex flex-wrap gap-1.5 border-t border-line pt-3; }
+
+  /* Evaluation matrix ----------------------------------------------- */
+  .matrix { @apply grid grid-cols-[auto_1fr_1fr] gap-1 p-4 text-sm sm:p-5; }
+  .matrix .corner { @apply p-1; }
+  .matrix .axis { @apply self-center p-1 text-center text-[11px] font-medium tracking-wide text-ink-3 uppercase; }
+  .matrix .axis.rows { @apply [writing-mode:vertical-rl] rotate-180 justify-self-center; }
+  .matrix .cell { @apply flex min-h-24 flex-col justify-between rounded-(--radius-md) border border-line bg-raised p-3; }
+  .matrix .cell span { @apply text-xs text-ink-2; }
+  .matrix .cell strong { @apply text-[1.6rem] leading-none tabular-nums; }
+  .matrix .cell.good { @apply border-(--ok-line) bg-(--ok-bg); }
+  .matrix .cell.good strong { @apply text-(--ok); }
+  .matrix .cell.bad strong { @apply text-(--sev-critical); }
+
+  /* Skeleton -------------------------------------------------------- */
+  .skeleton { @apply animate-pulse rounded-md bg-sunken; }
+}
+
+@keyframes row-in {
+  from { opacity: 0; transform: translateY(-4px); background-color: var(--accent-soft); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; animation: none !important; }
+  html { scroll-behavior: auto; }
+}
