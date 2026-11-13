@@ -69,7 +69,7 @@ For frontend development keep the backend running and use `npm.cmd --prefix fron
 
 A useful script: in the Server Room, send **Camera offline**, then **Controller unavailable**, then **Forced door opening**. The first two produce no incident on their own. The third completes the sequence and raises a critical incident with all three as evidence.
 
-To demonstrate a rule violation without pressing buttons one at a time, use **Break a rule** on the Simulate or Correlation rules tab. Pick a zone, tap a rule, and its events are sent about 2.5 seconds apart while the progress panel shows each step. The incident appears on the Overview as the last event lands. After-hours rules played during staffed hours are stamped at 22:00 building time so they can match; the progress panel says so.
+To demonstrate a rule violation without pressing buttons one at a time, use **Break a rule** on the Simulate or Correlation rules tab. Pick a zone, tap a rule, and its events are sent about a second apart while the progress panel shows each step. The incident appears on the Overview as the last event lands. After-hours rules played during staffed hours are stamped at 22:00 building time so they can match; the progress panel says so.
 
 **Save session as run** stores the live session in Run history. **Clear live session** starts over. **Delete all saved runs** removes every stored run, including the seeded demonstration.
 

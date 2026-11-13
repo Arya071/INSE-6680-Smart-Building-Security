@@ -40,7 +40,7 @@ class LiveEventRequest(BaseModel):
 class PlayRequest(BaseModel):
     rule_id: str
     location: str | None = None
-    interval_seconds: float = Field(default=2.5, ge=0, le=30)
+    interval_seconds: float = Field(default=1.2, ge=0, le=30)
 
 
 class Playback(BaseModel):

@@ -49,6 +49,7 @@ const headings = {
 const screen = () => navigation.some(([id]) => location.hash === '#' + id)
   ? location.hash.slice(1) : 'overview'
 const LIVE_POLL_MS = 1500
+const PLAY_INTERVAL_S = 1.2
 const kindOptions = Object.entries(names)
 const severities = ['medium', 'high', 'critical']
 const kindSource = {
@@ -348,7 +349,7 @@ function PlaybackProgress({ playback, rules }) {
     <div className="playback-head">
       <strong>{playback.done
         ? (playback.incident_id ? `${playback.incident_id} raised · ${playback.title}` : `${playback.title} · no incident`)
-        : `Breaking “${playback.title}” · step ${playback.step} of ${playback.total}`}</strong>
+        : `Breaking “${playback.title}” · event ${playback.step} of ${playback.total} sent`}</strong>
       <span className="tag"><MapPin size={12} aria-hidden="true" />{playback.zone}</span>
       {playback.after_hours_shift && <span className="tag"><Clock3 size={12} aria-hidden="true" />Stamped 22:00 (after hours)</span>}
     </div>
@@ -376,7 +377,7 @@ function RulePlayer({ rules, choices, live, busy, onPlay, compact }) {
   const zoneInfo = choices.zones.find(item => item.id === zone)
   return <section className="panel" aria-labelledby="break-heading">
     <div className="panel-heading">
-      <div><h3 id="break-heading">Break a rule</h3><p>Plays the rule’s event sequence into the live session one event at a time, a few seconds apart</p></div>
+      <div><h3 id="break-heading">Break a rule</h3><p>Fires the exact event sequence that violates the rule, one event every {PLAY_INTERVAL_S}s, and raises the incident on the Overview</p></div>
       <div className="field compact">
         <label htmlFor="play-zone">Zone</label>
         <div className="select-wrap">
@@ -395,7 +396,7 @@ function RulePlayer({ rules, choices, live, busy, onPlay, compact }) {
           <span className="rule-button-head"><Severity value={rule.severity} />{rule.custom && <span className="tag">Custom</span>}</span>
           <strong>{rule.title}</strong>
           <span className="rule-button-seq">{rule.sequence.map(kind => names[kind] ?? kind).join(' → ')}</span>
-          <span className="rule-button-cta"><Play size={13} aria-hidden="true" />{blocked ? 'Needs a restricted zone' : `Play ${rule.sequence.length} events`}</span>
+          <span className="rule-button-cta"><Play size={13} aria-hidden="true" />{blocked ? 'Needs a restricted zone' : `Break this rule · ${rule.sequence.length} events, ~${Math.round(PLAY_INTERVAL_S * (rule.sequence.length - 1))}s`}</span>
         </button>
       })}
     </div>
@@ -633,9 +634,10 @@ export default function App() {
         if (active) setLive(previous => previous?.version === state.version ? previous : state)
       } catch { /* keep the last known state */ }
     }
-    const timer = setInterval(tick, LIVE_POLL_MS)
+    const playing = live?.playback && !live.playback.done
+    const timer = setInterval(tick, playing ? 500 : LIVE_POLL_MS)
     return () => { active = false; clearInterval(timer) }
-  }, [ready, page])
+  }, [ready, page, live?.playback?.done])
 
   async function sendLiveEvent(payload) {
     setError('')
@@ -684,7 +686,7 @@ export default function App() {
   async function playRule(ruleId, location) {
     setError('')
     try {
-      await api('live/play', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rule_id: ruleId, location }) })
+      await api('live/play', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rule_id: ruleId, location, interval_seconds: PLAY_INTERVAL_S }) })
       setLive(await api('live'))
       setSource('live')
     } catch (failure) { setError(failure.message) }
